@@ -11,5 +11,8 @@ macro(TARGET_GLAD)
 
     add_dependencies(${TARGET_NAME} glad)
     target_link_libraries(${TARGET_NAME} glad)
+    if (NOT WIN32)
+        target_link_libraries(${TARGET_NAME} "-ldl")
+    endif()
     target_include_directories(${TARGET_NAME} PUBLIC ${GLAD_DIR}/include)
 endmacro()
