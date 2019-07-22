@@ -1,8 +1,7 @@
 #include "gl.hpp"
-
-#if defined(WIN32)
 #include <mutex>
 
+#if defined(WIN32)
 typedef PROC(APIENTRYP PFNWGLGETPROCADDRESS)(LPCSTR);
 PFNWGLGETPROCADDRESS glad_wglGetProcAddress;
 #define wglGetProcAddress glad_wglGetProcAddress
@@ -24,6 +23,7 @@ static void* getGlProcessAddress(const char* namez) {
     }
     return (void*)result;
 }
+#endif
 
 void gl::init() {
     static std::once_flag once;
@@ -97,4 +97,3 @@ void gl::setupDebugLogging() {
     glDebugMessageCallback(debugMessageCallback, NULL);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 }
-#endif
