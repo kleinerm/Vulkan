@@ -7,13 +7,21 @@
 #include <vulkanExampleBase.h>
 #include <vks/texture.hpp>
 
-// FIXME make work on non-Win32 platforms
+#if 1
+
 #if defined(WIN32)
 struct ShareHandles {
     HANDLE memory{ INVALID_HANDLE_VALUE };
     HANDLE glReady{ INVALID_HANDLE_VALUE };
     HANDLE glComplete{ INVALID_HANDLE_VALUE };
 };
+#else
+struct ShareHandles {
+    int memory{ 0 };
+    int glReady{ 0 };
+    int glComplete{ 0 };
+};
+#endif
 
 static const uint32_t SHARED_TEXTURE_DIMENSION = 512;
 
@@ -51,14 +59,23 @@ public:
         glGenSemaphoresEXT(1, &glReady);
         glGenSemaphoresEXT(1, &glComplete);
 
-        // Platform specific import.  On non-Win32 systems use glImportSemaphoreFdEXT instead
-        glImportSemaphoreWin32HandleEXT(glReady, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handles.glReady);
-        glImportSemaphoreWin32HandleEXT(glComplete, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handles.glComplete);
+        #ifdef WIN32
+            // Platform specific import.  On non-Win32 systems use glImportSemaphoreFdEXT instead
+            glImportSemaphoreWin32HandleEXT(glReady, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handles.glReady);
+            glImportSemaphoreWin32HandleEXT(glComplete, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handles.glComplete);
+        #else
+            glImportSemaphoreFdEXT(glReady, GL_HANDLE_TYPE_OPAQUE_FD_EXT, handles.glReady);
+            glImportSemaphoreFdEXT(glComplete, GL_HANDLE_TYPE_OPAQUE_FD_EXT, handles.glComplete);
+        #endif
 
         // Import memory
         glCreateMemoryObjectsEXT(1, &mem);
-        // Platform specific import.  On non-Win32 systems use glImportMemoryFdEXT instead
-        glImportMemoryWin32HandleEXT(mem, memorySize, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handles.memory);
+        #ifdef WIN32
+            // Platform specific import.  On non-Win32 systems use glImportMemoryFdEXT instead
+            glImportMemoryWin32HandleEXT(mem, memorySize, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handles.memory);
+        #else
+            glImportMemoryFdEXT(mem, memorySize, GL_HANDLE_TYPE_OPAQUE_FD_EXT, handles.memory);
+        #endif
 
         // Use the imported memory as backing for the OpenGL texture.  The internalFormat, dimensions
         // and mip count should match the ones used by Vulkan to create the image and determine it's memory
@@ -235,7 +252,11 @@ public:
             device = context.device;
             vk::DispatchLoaderDynamic dynamicLoader{ context.instance, &vkGetInstanceProcAddr, device, &vkGetDeviceProcAddr };
             {
-                auto handleType = vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32;
+                #if defined(WIN32)
+                    auto handleType = vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32;
+                #else
+                    auto handleType = vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueFd;
+                #endif
                 {
                     vk::SemaphoreCreateInfo sci;
                     vk::ExportSemaphoreCreateInfo esci;
@@ -244,8 +265,13 @@ public:
                     semaphores.glReady = device.createSemaphore(sci);
                     semaphores.glComplete = device.createSemaphore(sci);
                 }
-                handles.glReady = device.getSemaphoreWin32HandleKHR({ semaphores.glReady, handleType }, dynamicLoader);
-                handles.glComplete = device.getSemaphoreWin32HandleKHR({ semaphores.glComplete, handleType }, dynamicLoader);
+                #if defined(WIN32)
+                    handles.glReady = device.getSemaphoreWin32HandleKHR({ semaphores.glReady, handleType }, dynamicLoader);
+                    handles.glComplete = device.getSemaphoreWin32HandleKHR({ semaphores.glComplete, handleType }, dynamicLoader);
+                #else
+                    handles.glReady = device.getSemaphoreFdKHR({ semaphores.glReady, handleType }, dynamicLoader);
+                    handles.glComplete = device.getSemaphoreFdKHR({ semaphores.glComplete, handleType }, dynamicLoader);
+                #endif
             }
 
             {
@@ -267,13 +293,21 @@ public:
             {
                 vk::MemoryRequirements memReqs = device.getImageMemoryRequirements(texture.image);
                 vk::MemoryAllocateInfo memAllocInfo;
-                vk::ExportMemoryAllocateInfo exportAllocInfo{ vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 };
+                #if defined(WIN32)
+                    vk::ExportMemoryAllocateInfo exportAllocInfo{ vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 };
+                #else
+                    vk::ExportMemoryAllocateInfo exportAllocInfo{ vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd };
+                #endif
                 memAllocInfo.pNext = &exportAllocInfo;
                 memAllocInfo.allocationSize = texture.allocSize = memReqs.size;
                 memAllocInfo.memoryTypeIndex = context.getMemoryType(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
                 texture.memory = device.allocateMemory(memAllocInfo);
                 device.bindImageMemory(texture.image, texture.memory, 0);
-                handles.memory = device.getMemoryWin32HandleKHR({ texture.memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 }, dynamicLoader);
+                #if defined(WIN32)
+                    handles.memory = device.getMemoryWin32HandleKHR({ texture.memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 }, dynamicLoader);
+                #else
+                    handles.memory = device.getMemoryFdKHR({ texture.memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd }, dynamicLoader);
+                #endif
             }
 
             {
@@ -357,7 +391,7 @@ public:
     OpenGLInteropExample() {
         camera.setRotation({ 0.0f, 15.0f, 0.0f });
         camera.dolly(-2.5f);
-        title = "Vulkan Example - Texturing";
+        title = "Vulkan Example - OpenGL interoperability";
 
         context.requireExtensions({
             VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,    //
@@ -368,13 +402,13 @@ public:
             VK_KHR_MAINTENANCE1_EXTENSION_NAME,            //
                 VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,     //
                 VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,  //
-#if defined(WIN32)
+                #if defined(WIN32)
                 VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,    //
                 VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME  //
-#else
+                #else
                 VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,    //
                 VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME  //
-#endif
+                #endif
         });
     }
 
