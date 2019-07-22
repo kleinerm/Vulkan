@@ -39,7 +39,7 @@ public:
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
         // Window doesn't need to be large, it only exists to give us a GL context
-        window.createWindow(uvec2{ 10 });
+        window.createWindow(uvec2{ SHARED_TEXTURE_DIMENSION });
         window.makeCurrent();
 
         gl::init();
@@ -134,6 +134,11 @@ public:
         // but depending on how the waits and signals are structured, this may never
         // occur.
         glFlush();
+
+        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        //window.present();
     }
 
 private:
