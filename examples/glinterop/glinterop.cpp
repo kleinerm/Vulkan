@@ -284,6 +284,7 @@ public:
                 imageCreateInfo.extent.width = SHARED_TEXTURE_DIMENSION;
                 imageCreateInfo.extent.height = SHARED_TEXTURE_DIMENSION;
                 imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
+                imageCreateInfo.tiling = vk::ImageTiling::eLinear;
                 texture.image = device.createImage(imageCreateInfo);
                 texture.device = device;
                 texture.format = imageCreateInfo.format;
