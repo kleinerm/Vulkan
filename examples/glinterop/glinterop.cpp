@@ -33,9 +33,9 @@ public:
     void init(ShareHandles& handles, uint64_t memorySize) {
         glfw::Window::init();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
         // Window doesn't need to be large, it only exists to give us a GL context
@@ -48,6 +48,7 @@ public:
         window.showWindow(false);
         program = gl::buildProgram(VERTEX_SHADER, FRAGMENT_SHADER);
         startTime = glfwGetTime();
+        printf("\n\n\nGL-Version: %s\n\n\n", glGetString(GL_VERSION));
 
         glDisable(GL_DEPTH_TEST);
 
