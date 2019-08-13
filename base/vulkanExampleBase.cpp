@@ -27,6 +27,7 @@ ExampleBase::ExampleBase() {
     vkx::android::androidApp->onAppCmd = ExampleBase::handle_app_cmd;
 #endif
     camera.setPerspective(60.0f, size, 0.1f, 256.0f);
+    settings.overlay = false;
 }
 
 ExampleBase::~ExampleBase() {
