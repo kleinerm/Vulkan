@@ -63,6 +63,7 @@ const std::string& vkx::getAssetPath() {
         std::string::size_type lastSlash = file.rfind("/");
         file = file.substr(0, lastSlash);
         path = file + "/../data/";
+        path = "../data/";
     });
     return path;
 #endif
