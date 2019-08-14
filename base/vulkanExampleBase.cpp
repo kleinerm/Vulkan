@@ -28,6 +28,7 @@ ExampleBase::ExampleBase() {
 #endif
     camera.setPerspective(60.0f, size, 0.1f, 256.0f);
     settings.overlay = false;
+    settings.validation = true;
 }
 
 ExampleBase::~ExampleBase() {
