@@ -404,6 +404,9 @@ public:
         title = "Vulkan Example - OpenGL interoperability";
 
         context.requireExtensions({
+			#if defined(WIN32)
+            VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,			// Windows only so far.
+			#endif
             VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,    //
             VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME  //
         });
@@ -412,7 +415,10 @@ public:
             VK_KHR_MAINTENANCE1_EXTENSION_NAME,            //
                 VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,     //
                 VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,  //
+                VK_EXT_HDR_METADATA_EXTENSION_NAME,
                 #if defined(WIN32)
+                //VK_AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME,     // Windows + AMD only, no NVidia!
+                VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
                 VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,    //
                 VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME  //
                 #else
