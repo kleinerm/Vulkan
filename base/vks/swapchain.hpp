@@ -68,10 +68,12 @@ struct SwapChain {
             // check for it's presence
             colorFormat = surfaceFormats[0].format;
         }
+        colorFormat = vk::Format::eR16G16B16A16Sfloat;
+        //colorFormat = vk::Format::eA2B10G10R10UnormPack32;
         colorSpace = surfaceFormats[0].colorSpace;
     }
 
-    // Creates an os specific surface
+	// Creates an os specific surface
     // Tries to find a graphics and a present queue
     void create(vk::Extent2D& size, bool vsync = false) {
         if (!physicalDevice || !device || !surface) {
