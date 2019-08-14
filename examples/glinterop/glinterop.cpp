@@ -81,7 +81,8 @@ public:
         // Use the imported memory as backing for the OpenGL texture.  The internalFormat, dimensions
         // and mip count should match the ones used by Vulkan to create the image and determine it's memory
         // allocation.
-        glTextureStorageMem2DEXT(color, 1, GL_RGBA8, SHARED_TEXTURE_DIMENSION, SHARED_TEXTURE_DIMENSION, mem, 0);
+        glTextureStorageMem2DEXT(color, 1, GL_RGBA16F, SHARED_TEXTURE_DIMENSION, SHARED_TEXTURE_DIMENSION, mem, 0);
+        //glTextureStorageMem2DEXT(color, 1, GL_RGB10_A2, SHARED_TEXTURE_DIMENSION, SHARED_TEXTURE_DIMENSION, mem, 0);
 
         // The remaining initialization code is all standard OpenGL
         glCreateFramebuffers(1, &fbo);
@@ -223,7 +224,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     
     float f = iqnoise( 24.0*uv, p.x, p.y );
     
-    fragColor = vec4( f, f, f, 1.0 );
+    fragColor = vec4( f, 0.0, 0.0, 1.0 );
 }
 
 void main() { mainImage(outColor, gl_FragCoord.xy); }
@@ -283,7 +284,9 @@ public:
             {
                 vk::ImageCreateInfo imageCreateInfo;
                 imageCreateInfo.imageType = vk::ImageType::e2D;
-                imageCreateInfo.format = vk::Format::eR8G8B8A8Unorm;
+                //imageCreateInfo.format = vk::Format::eR8G8B8A8Unorm;
+                //imageCreateInfo.format = vk::Format::eA2B10G10R10UnormPack32;
+                imageCreateInfo.format = vk::Format::eR16G16B16A16Sfloat;
                 imageCreateInfo.mipLevels = 1;
                 imageCreateInfo.arrayLayers = 1;
                 imageCreateInfo.extent.depth = 1;
