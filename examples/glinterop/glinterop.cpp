@@ -30,7 +30,7 @@ public:
     static const std::string VERTEX_SHADER;
     static const std::string FRAGMENT_SHADER;
 
-    void init(ShareHandles& handles, uint64_t memorySize) {
+    void preinit(void) {
         glfw::Window::init();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -44,6 +44,10 @@ public:
 
         gl::init();
         gl::setupDebugLogging();
+    }
+
+    void init(ShareHandles& handles, uint64_t memorySize) {
+        GLint tilingMode;
 
         window.showWindow(false);
         program = gl::buildProgram(VERTEX_SHADER, FRAGMENT_SHADER);
@@ -78,11 +82,44 @@ public:
             glImportMemoryFdEXT(mem, memorySize, GL_HANDLE_TYPE_OPAQUE_FD_EXT, handles.memory);
         #endif
 
+        // Query actual tiling mode of texture. We need "optimal tiling" !
+        glBindTexture(GL_TEXTURE_2D, color);
+
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_TILING_EXT, &tilingMode);
+        if (tilingMode == GL_OPTIMAL_TILING_EXT)
+            printf("Initially optimal tiling for shared texture.\n");
+        else if (tilingMode == GL_LINEAR_TILING_EXT)
+            printf("Initially linear tiling for shared texture.\n");
+        else
+            printf("Initially UNKNOWN tiling 0x%x for shared texture!\n", tilingMode);
+
+        glGetInternalformativ(GL_TEXTURE_2D, GL_RGBA16F, GL_NUM_TILING_TYPES_EXT, 100, &tilingMode);
+        printf("GL_NUM_TILING_TYPES_EXT %i\n", tilingMode);
+
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_IMMUTABLE_FORMAT, &tilingMode);
+        printf("GL_TEXTURE_IMMUTABLE_FORMAT %i\n", tilingMode);
+
+        // Set tiling mode for rendering into texture to optimal tiling, instead
+        // of linear tiling, which worked for AMD gpu's, but not NVidia gpu's.
+        // Optimal tiling works for both AMD and NVidia:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_TILING_EXT, GL_OPTIMAL_TILING_EXT);
+
         // Use the imported memory as backing for the OpenGL texture.  The internalFormat, dimensions
         // and mip count should match the ones used by Vulkan to create the image and determine it's memory
         // allocation.
         glTextureStorageMem2DEXT(color, 1, GL_RGBA16F, SHARED_TEXTURE_DIMENSION, SHARED_TEXTURE_DIMENSION, mem, 0);
         //glTextureStorageMem2DEXT(color, 1, GL_RGB10_A2, SHARED_TEXTURE_DIMENSION, SHARED_TEXTURE_DIMENSION, mem, 0);
+
+        // Query actual tiling mode of texture. We need "optimal tiling" !
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_TILING_EXT, &tilingMode);
+        if (tilingMode == GL_OPTIMAL_TILING_EXT)
+            printf("Using optimal tiling for shared texture.\n");
+        else if (tilingMode == GL_LINEAR_TILING_EXT)
+            printf("Using linear tiling for shared texture.\n");
+        else
+            printf("Using UNKNOWN tiling 0x%x for shared texture!\n", tilingMode);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         // The remaining initialization code is all standard OpenGL
         glCreateFramebuffers(1, &fbo);
@@ -293,7 +330,21 @@ public:
                 imageCreateInfo.extent.width = SHARED_TEXTURE_DIMENSION;
                 imageCreateInfo.extent.height = SHARED_TEXTURE_DIMENSION;
                 imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
-                imageCreateInfo.tiling = vk::ImageTiling::eLinear;
+                if (!strstr((const char*) glGetString(GL_VERSION), "Mesa")) {
+                    // Use optimal tiling on non-MESA: At least NVidia binary
+                    // blob on Linux needs optimal tiling for renderable attachments,
+                    // and presumably the NVidia blob on Windows as well. We don't
+                    // know yet AMD on Windows, but hope it can do optimal:
+                    imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+                }
+                else {
+                    // Use linear tiling on Mesa: The AMD radeonsi Mesa gallium
+                    // driver does not respect our choice of OpenGL texture tiling mode,
+                    // but is fixed to GL_LINEAR_TILING_EXT, so we have to set linear
+                    // on the Vulkan export side as well :/
+                    imageCreateInfo.tiling = vk::ImageTiling::eLinear;
+                }
+
                 texture.image = device.createImage(imageCreateInfo);
                 texture.device = device;
                 texture.format = imageCreateInfo.format;
@@ -443,6 +494,7 @@ public:
     }
 
     void buildExportableImage() {
+        texGenerator.preinit();
         shared.init(context);
         texGenerator.init(shared.handles, shared.texture.allocSize);
     }
