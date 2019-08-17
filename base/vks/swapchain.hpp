@@ -68,7 +68,7 @@ struct SwapChain {
             // check for it's presence
             colorFormat = surfaceFormats[0].format;
         }
-        colorFormat = vk::Format::eR16G16B16A16Sfloat;
+        //colorFormat = vk::Format::eR16G16B16A16Sfloat;
         //colorFormat = vk::Format::eA2B10G10R10UnormPack32;
         colorSpace = surfaceFormats[0].colorSpace;
     }
