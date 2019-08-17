@@ -52,7 +52,7 @@ public:
         window.showWindow(false);
         program = gl::buildProgram(VERTEX_SHADER, FRAGMENT_SHADER);
         startTime = glfwGetTime();
-        printf("\n\n\nGL-Version: %s\n\n\n", glGetString(GL_VERSION));
+        printf("\n\n\nGL-Renderer: %s\nGL-Version: %s\n\n\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
         glDisable(GL_DEPTH_TEST);
 
@@ -330,11 +330,13 @@ public:
                 imageCreateInfo.extent.width = SHARED_TEXTURE_DIMENSION;
                 imageCreateInfo.extent.height = SHARED_TEXTURE_DIMENSION;
                 imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
-                if (!strstr((const char*) glGetString(GL_VERSION), "Mesa")) {
+                if (!strstr((const char*) glGetString(GL_VERSION), "Mesa") &&
+					!strstr((const char*) glGetString(GL_RENDERER), "AMD")) {
                     // Use optimal tiling on non-MESA: At least NVidia binary
                     // blob on Linux needs optimal tiling for renderable attachments,
                     // and presumably the NVidia blob on Windows as well. We don't
                     // know yet AMD on Windows, but hope it can do optimal:
+                    printf("VK uses optimal tiling.\n");
                     imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
                 }
                 else {
@@ -342,6 +344,7 @@ public:
                     // driver does not respect our choice of OpenGL texture tiling mode,
                     // but is fixed to GL_LINEAR_TILING_EXT, so we have to set linear
                     // on the Vulkan export side as well :/
+                    printf("VK uses linear tiling.\n");
                     imageCreateInfo.tiling = vk::ImageTiling::eLinear;
                 }
 
