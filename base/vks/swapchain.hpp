@@ -61,16 +61,35 @@ struct SwapChain {
         // there is no preferered format, so we assume  vk::Format::eB8G8R8A8Unorm
         if ((formatCount == 1) && (surfaceFormats[0].format == vk::Format::eUndefined)) {
             colorFormat = vk::Format::eB8G8R8A8Unorm;
+            colorSpace = surfaceFormats[0].colorSpace;
         } else {
-            // Always select the first available color format
-            // If you need a specific format (e.g. SRGB) you'd need to
-            // iterate over the list of available surface format and
-            // check for it's presence
-            colorFormat = surfaceFormats[0].format;
+            int i;
+
+			// Try to get RGBA16F float, then RGB10A2 as second choice, then
+			// a fallback to default RGBA8:
+            colorFormat = vk::Format::eUndefined;
+            for (i = 0; (i < formatCount) && (colorFormat == vk::Format::eUndefined); i++)
+                if (surfaceFormats[i].format == vk::Format::eR16G16B16A16Sfloat) {
+                    printf("[%i] Using swapchain format RGBA16F\n", i);
+                    colorFormat = surfaceFormats[i].format;
+                    colorSpace = surfaceFormats[i].colorSpace;
+                    break;
+                }
+
+			for (i = 0; (i < formatCount) && (colorFormat == vk::Format::eUndefined); i++)
+                if (surfaceFormats[i].format == vk::Format::eA2B10G10R10UnormPack32) {
+                    printf("[%i] Using swapchain format RGB10A2\n", i);
+                    colorFormat = surfaceFormats[i].format;
+                    colorSpace = surfaceFormats[i].colorSpace;
+                    break;
+                }
+            
+			if (colorFormat == vk::Format::eUndefined) {
+                printf("Using default fallback swapchain format eB8G8R8A8Unorm\n");
+                colorFormat = surfaceFormats[0].format;
+                colorSpace = surfaceFormats[0].colorSpace;
+            }
         }
-        //colorFormat = vk::Format::eR16G16B16A16Sfloat;
-        //colorFormat = vk::Format::eA2B10G10R10UnormPack32;
-        colorSpace = surfaceFormats[0].colorSpace;
     }
 
 	// Creates an os specific surface
